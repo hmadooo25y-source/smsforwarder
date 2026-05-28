@@ -6,10 +6,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -21,7 +21,7 @@ jobs:
 
       - name: Build APK
         run: |
-          cat > buildozer.spec << 'EOF'
+          cat > buildozer.spec << 'SPEC'
           [app]
           title = SMS Forwarder
           package.name = smsforwarder
@@ -40,11 +40,11 @@ jobs:
           [buildozer]
           log_level = 2
           warn_on_root = 1
-          EOF
+          SPEC
           yes | buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: SMS-Forwarder-APK
           path: bin/*.apk
