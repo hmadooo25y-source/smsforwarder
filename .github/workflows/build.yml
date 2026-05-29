@@ -40,118 +40,32 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython==0.29.37
 
-      - name: Set up Android SDK
+      - name: Create buildozer.spec
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          printf '%s\n' \
+            '[app]' \
+            'title = SMS Forwarder' \
+            'package.name = smsforwarder' \
+            'package.domain = org.hamza' \
+            'source.dir = .' \
+            'source.include_exts = py,png,jpg,kv,atlas,json' \
+            'version = 1.0' \
+            'requirements = python3,kivy==2.3.0,openssl' \
+            'orientation = portrait' \
+            'fullscreen = 0' \
+            'android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET' \
+            'android.api = 33' \
+            'android.minapi = 21' \
+            'android.ndk = 25b' \
+            'android.archs = arm64-v8a' \
+            '' \
+            '[buildozer]' \
+            'log_level = 2' \
+            'warn_on_root = 1' \
+            > buildozer.spec
 
       - name: Build APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-        run: |
-          cat > buildozer.spec << 'SPEC'
-[app]
-title = SMS Forwarder
-package.name = smsforwarder
-package.domain = org.hamza
-source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json
-version = 1.0
-requirements = python3,kivy==2.3.0,openssl
-orientation = portrait
-fullscreen = 0
-android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET
-android.api = 33
-android.minapi = 21
-android.ndk = 25b
-android.archs = arm64-v8a
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
-SPEC
-          yes | buildozer -v android debug 2>&1 | tail -100
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SMS-Forwarder-APK
-          path: bin/*.apk
-          if-no-files-found: warnname: Build APK
-
-on: [push]
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-pip \
-            build-essential \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
-            autoconf \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo5 \
-            cmake \
-            libffi-dev \
-            libssl-dev
-
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.37
-
-      - name: Set up Android SDK
-        run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-
-      - name: Build APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-        run: |
-          cat > buildozer.spec << 'SPEC'
-[app]
-title = SMS Forwarder
-package.name = smsforwarder
-package.domain = org.hamza
-source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json
-version = 1.0
-requirements = python3,kivy==2.3.0,openssl
-orientation = portrait
-fullscreen = 0
-android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET
-android.api = 33
-android.minapi = 21
-android.ndk = 25b
-android.archs = arm64-v8a
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
-SPEC
-          yes | buildozer -v android debug 2>&1 | tail -100
+        run: yes | buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
