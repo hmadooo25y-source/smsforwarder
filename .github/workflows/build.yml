@@ -12,7 +12,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install system dependencies
         run: |
@@ -37,8 +37,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install buildozer==1.5.0 cython==0.29.37
+          python -m pip install --upgrade pip
+          pip install --upgrade buildozer cython git+https://github.com/kivy/python-for-android.git
 
       - name: Generate buildozer.spec Safely
         run: |
@@ -56,7 +56,7 @@ jobs:
           android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET
           android.api = 33
           android.minapi = 21
-          android.ndk = 25
+          android.ndk = 25b
           android.archs = arm64-v8a
 
           [buildozer]
