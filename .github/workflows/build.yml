@@ -30,7 +30,7 @@ jobs:
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            libtinfo5 \
+            libncurses5 \
             cmake \
             libffi-dev \
             libssl-dev
@@ -38,7 +38,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install buildozer cython==0.29.37
+          pip install buildozer==1.5.0 cython==0.29.37
 
       - name: Create buildozer.spec
         run: |
@@ -56,7 +56,7 @@ jobs:
             'android.permissions = READ_SMS,RECEIVE_SMS,READ_CALL_LOG,READ_PHONE_STATE,INTERNET' \
             'android.api = 33' \
             'android.minapi = 21' \
-            'android.ndk = 25b' \
+            'android.ndk = 25' \
             'android.archs = arm64-v8a' \
             '' \
             '[buildozer]' \
